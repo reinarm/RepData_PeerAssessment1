@@ -7,9 +7,7 @@ output:
     keep_md: yes
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 ## Introduction
 
@@ -37,33 +35,63 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 ****  
 ## Loading packages  
-```{r message = FALSE}
+
+```r
 library(tidyverse)
 library(ggplot2)
 ```
 ***
 
 ## Loading and processing data 
-```{r echo = FALSE}
-setwd("~/RProgramming/05_JHU/Reproducible Research")
-```
+
 
 Dowload and unzip the File:  
-```{r}
+
+```r
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
 download.file(fileURL, destfile = "./Factivity.zip")
 unzip("Factivity.zip")
 ```
 
 Loading the data and a quick check of the summary and data:
-```{r}
+
+```r
 df <- read.csv("activity.csv")
 summary(df)
+```
+
+```
+##      steps            date              interval     
+##  Min.   :  0.00   Length:17568       Min.   :   0.0  
+##  1st Qu.:  0.00   Class :character   1st Qu.: 588.8  
+##  Median :  0.00   Mode  :character   Median :1177.5  
+##  Mean   : 37.38                      Mean   :1177.5  
+##  3rd Qu.: 12.00                      3rd Qu.:1766.2  
+##  Max.   :806.00                      Max.   :2355.0  
+##  NA's   :2304
+```
+
+```r
 head(df, 10)
 ```
 
+```
+##    steps       date interval
+## 1     NA 2012-10-01        0
+## 2     NA 2012-10-01        5
+## 3     NA 2012-10-01       10
+## 4     NA 2012-10-01       15
+## 5     NA 2012-10-01       20
+## 6     NA 2012-10-01       25
+## 7     NA 2012-10-01       30
+## 8     NA 2012-10-01       35
+## 9     NA 2012-10-01       40
+## 10    NA 2012-10-01       45
+```
+
 Change the the variable to the class Date:
-```{r}
+
+```r
 df$date <- as.Date(df$date)
 ```
 ***
@@ -73,7 +101,8 @@ df$date <- as.Date(df$date)
 ## What is the mean total number of steps taken per day?
 
 Calculate the total number of steps taken per day and plot the histogram.
-```{r}
+
+```r
 totalsteps <- df %>% 
     group_by(date) %>% 
     summarise(Steps = sum(steps))
@@ -84,14 +113,27 @@ ggplot(totalsteps, aes(Steps)) +
     theme_minimal()
 ```
 
+```
+## Warning: Removed 8 rows containing non-finite values (stat_bin).
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
 ***
 
 Calculate the mean and median number of steps.
-```{r message = FALSE}
+
+```r
 knitr::kable(totalsteps %>% 
     select(Steps) %>% 
     summarise_all(list(Mean_steps = mean, Median_steps = median), na.rm = TRUE), "pipe")
 ```
+
+
+
+| Mean_steps| Median_steps|
+|----------:|------------:|
+|   10766.19|        10765|
 
 ***
 
@@ -99,7 +141,8 @@ knitr::kable(totalsteps %>%
 ## What is the average daily activity pattern?
 
 Calculate the average number of steps taken and make a time series plot.
-```{r}
+
+```r
 totalinterval <- df %>% 
     group_by(interval) %>% 
     summarise(Average = mean(steps, na.rm = TRUE))
@@ -110,12 +153,22 @@ ggplot(totalinterval, aes(x = interval, y = Average)) +
     theme_minimal()
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
 ***
 
 The 5-minute interval, that, on average, contains the maximum number of steps
 
-``` {r}
+
+```r
 totalinterval[which.max(totalinterval$Average), ]
+```
+
+```
+## # A tibble: 1 x 2
+##   interval Average
+##      <int>   <dbl>
+## 1      835    206.
 ```
 
 ***
@@ -123,14 +176,29 @@ totalinterval[which.max(totalinterval$Average), ]
 ## Code to describe and show a strategy for imputing missing data & 
 
 **1.** The number of missing values in the dataset.
-```{r}
+
+```r
 colSums(is.na(df))
+```
+
+```
+##    steps     date interval 
+##     2304        0        0
+```
+
+```r
 colSums(is.na(df)) / nrow(df)
+```
+
+```
+##     steps      date  interval 
+## 0.1311475 0.0000000 0.0000000
 ```
 13% of the entries of the variable *steps* are missing value. All other variables do not contain missing values.  
   
 **2.** One of the strategies of dealing with missing values is listwise deletion. Which means, all cases with a missing value will be deleted.
-```{r}
+
+```r
 df %>% 
     drop_na() %>% 
     group_by(date) %>% 
@@ -141,10 +209,13 @@ df %>%
     theme_minimal()
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
 In this case, the effect on the histogram is not very large, since some stats in ggplot requires complete data, missing values will be automatically removed with a warning. This warning is visible at the first histogram.  
   
 A second strategy is to replace the missing values with the mean or median of that variable. In the case of imputation with median, the effect is clearer.
-```{r}
+
+```r
 df %>% 
     mutate_at(vars(steps), ~ifelse(is.na(.x), median(.x, na.rm = TRUE), .x)) %>% 
     group_by(date) %>% 
@@ -155,12 +226,29 @@ df %>%
     theme_minimal()
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
 **3.** Creating a new dataset that is equal to the original dataset but with the missing data filled in.
 
-```{r}
+
+```r
 df_filled <- df %>%  
     mutate_at(vars(steps), ~ifelse(is.na(.x), median(.x, na.rm = TRUE), .x))
 head(df_filled, 10)
+```
+
+```
+##    steps       date interval
+## 1      0 2012-10-01        0
+## 2      0 2012-10-01        5
+## 3      0 2012-10-01       10
+## 4      0 2012-10-01       15
+## 5      0 2012-10-01       20
+## 6      0 2012-10-01       25
+## 7      0 2012-10-01       30
+## 8      0 2012-10-01       35
+## 9      0 2012-10-01       40
+## 10     0 2012-10-01       45
 ```
 
 **4.** Calculate and report the mean and median total number of steps taken per day.
@@ -168,27 +256,17 @@ head(df_filled, 10)
 If the missing values are deleted, there is no effect compared to the calculation at the beginning. If, on the other hand, the missing values are replaced with the median, the mean decreases significantly and the median shifts.
   
 The result of the complete cases:
-```{r echo = FALSE}
-knitr::kable(df %>% 
-                 drop_na() %>% 
-                 group_by(date) %>% 
-                 summarise(Steps = sum(steps)) %>% 
-                 ungroup() %>% 
-                 summarise(Mean_steps = mean(Steps),
-                           Median_steps = median(Steps)), "simple")
-```
+
+ Mean_steps   Median_steps
+-----------  -------------
+   10766.19          10765
 
 
 The result of replacing the missing values with median:
-```{r echo = FALSE}
-knitr::kable(df %>% 
-    mutate_at(vars(steps), ~ifelse(is.na(.x), median(.x, na.rm = TRUE), .x)) %>% 
-    group_by(date) %>% 
-    summarise(Steps = sum(steps)) %>% 
-    ungroup() %>% 
-    summarise(Mean_steps = mean(Steps),
-              Median_steps = median(Steps)), "simple")
-```
+
+ Mean_steps   Median_steps
+-----------  -------------
+    9354.23          10395
   
 ***
 
@@ -196,12 +274,14 @@ knitr::kable(df %>%
 ## Are there differences in activity patterns between weekdays and weekends?
 
 Create a factor variable which shows whether the date is a weekday or a weekend.
-```{r}
+
+```r
 df_filled$day <- as.factor(if_else(weekdays(df_filled$date, abbreviate = TRUE) %in% c("Sa", "So"), "Weekend", "Weekday"))
 ```
   
 Creating a a panel containing a time series of the 5-minute intervall and average number of steps across all weekday days and weekend days.
-```{r message = FALSE}
+
+```r
 df_filled %>% 
     group_by(interval, day) %>% 
     summarise(Average = mean(steps)) %>% 
@@ -211,3 +291,5 @@ df_filled %>%
     labs(title = "Average steps across all weekday and weekend", x = "Interval", y = "Average Steps") +
     theme_minimal()
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
